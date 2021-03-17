@@ -31,7 +31,7 @@ def ensure_list(x: Union[Iterable, Any]):
         return [x]
 
 
-def to_json_response(obj):
-    """ Following https://stackoverflow.com/a/1118038 """
-    from flask import jsonify
-    return jsonify(_to_dict(obj))
+# def to_json_response(obj):
+#     """ Following https://stackoverflow.com/a/1118038 """
+#     from flask import jsonify
+#     return jsonify(_to_dict(obj))

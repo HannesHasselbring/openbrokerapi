@@ -11,40 +11,36 @@ from openbrokerapi_v2.catalog import (
 from openbrokerapi_v2.settings import DISABLE_SPACE_ORG_GUID_CHECK
 
 
-class ProvisionDetails:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str,
-                 organization_guid: str = None,
-                 space_guid: str = None,
-                 parameters: dict = None,
-                 context: dict = None,
-                 **kwargs):
-        self.service_id = service_id
-        self.plan_id = plan_id
-        self.organization_guid = organization_guid
-        self.space_guid = space_guid
-        self.parameters = parameters
-        self.context = context
+class ProvisionDetails(BaseModel):
+    service_id: str
+    plan_id: str
+    organization_guid: str = None
+    space_guid: str = None
+    parameters: dict = None
+    context: dict = None
+
+    class Config:
+        extra = Extra.allow
+
 
         # Usage context information
-        if isinstance(context, dict) and 'organization_guid' in context:
-            if organization_guid is not None and context['organization_guid'] != organization_guid:
-                raise TypeError('organization_guid does not match with context.organization_guid')
-            self.organization_guid = context['organization_guid']
-        if isinstance(context, dict) and 'space_guid' in context:
-            if space_guid is not None and context['space_guid'] != space_guid:
-                raise TypeError('space_guid does not match with context.space_guid')
-            self.space_guid = context['space_guid']
-
-        if DISABLE_SPACE_ORG_GUID_CHECK:
-            pass
-        elif None in (self.organization_guid, self.space_guid):
-            raise TypeError('Organization and space guid are required.')
-
-        # HTTP contextual data
-        self.authorization_username = None  #: username of HTTP Basic Auth
-        self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
+        # if isinstance(context, dict) and 'organization_guid' in context:
+        #     if organization_guid is not None and context['organization_guid'] != organization_guid:
+        #         raise TypeError('organization_guid does not match with context.organization_guid')
+        #     self.organization_guid = context['organization_guid']
+        # if isinstance(context, dict) and 'space_guid' in context:
+        #     if space_guid is not None and context['space_guid'] != space_guid:
+        #         raise TypeError('space_guid does not match with context.space_guid')
+        #     self.space_guid = context['space_guid']
+        #
+        # if DISABLE_SPACE_ORG_GUID_CHECK:
+        #     pass
+        # elif None in (self.organization_guid, self.space_guid):
+        #     raise TypeError('Organization and space guid are required.')
+        #
+        # # HTTP contextual data
+        # self.authorization_username = None  #: username of HTTP Basic Auth
+        # self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
 
 
 class ProvisionState(str, Enum):
@@ -53,151 +49,116 @@ class ProvisionState(str, Enum):
     IDENTICAL_ALREADY_EXISTS = "exists with identical config"
 
 
-class ProvisionedServiceSpec:
-    def __init__(self,
-                 state: ProvisionState = ProvisionState.SUCCESSFUL_CREATED,
-                 dashboard_url: str = None,
-                 operation: str = None
-                 ):
-        self.state = state
-        self.dashboard_url = dashboard_url
-        self.operation = operation
+class ProvisionedServiceSpec(BaseModel):
+    state: ProvisionState = ProvisionState.SUCCESSFUL_CREATED
+    dashboard_url: str = None
+    operation: str = None
 
     @property
     def is_async(self):
         return self.state == ProvisionState.IS_ASYNC
 
 
-class GetInstanceDetailsSpec:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str,
-                 dashboard_url: Optional[str] = None,
-                 parameters: Optional[dict] = None
-                 ):
-        self.service_id = service_id
-        self.plan_id = plan_id
-        self.dashboard_url = dashboard_url
-        self.parameters = parameters
+class GetInstanceDetailsSpec(BaseModel):
+    service_id: str
+    plan_id: str
+    dashboard_url: Optional[str] = None
+    parameters: Optional[dict] = None
 
 
-class DeprovisionDetails:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str
-                 ):
-        self.service_id = service_id
-        self.plan_id = plan_id
+
+class DeprovisionDetails(BaseModel):
+     service_id: str
+     plan_id: str
+
         # HTTP contextual data
-        self.authorization_username = None  #: username of HTTP Basic Auth
-        self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
+        # self.authorization_username = None  #: username of HTTP Basic Auth
+        # self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
 
 
-class DeprovisionServiceSpec:
-    def __init__(self,
-                 is_async: bool,
-                 operation: str = None
-                 ):
-        self.is_async = is_async
-        self.operation = operation
+class DeprovisionServiceSpec(BaseModel):
+    is_async: bool
+    operation: str = None
 
 
-class PreviousValues:
-    def __init__(self,
-                 plan_id: str = None,
-                 service_id: str = None,
-                 organization_id: str = None,
-                 space_id: str = None,
-                 **kwargs):
-        self.plan_id = plan_id
-        self.service_id = service_id
-        self.organization_id = organization_id
-        self.space_id = space_id
+class PreviousValues(BaseModel):
+    plan_id: str = None
+    service_id: str = None
+    organization_id: str = None
+    space_id: str = None
+
+    class Config:
+        extra = Extra.allow
 
 
-class UpdateDetails:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str = None,
-                 parameters: dict = None,
-                 previous_values: dict = None,
-                 context: dict = None,
-                 **kwargs
-                 ):
-        self.service_id = service_id
-        self.plan_id = plan_id
-        self.parameters = parameters
-        self.previous_values = PreviousValues(**previous_values) if previous_values else None
-        self.context = context
-        # HTTP contextual data
-        self.authorization_username = None  #: username of HTTP Basic Auth
-        self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
+
+class UpdateDetails(BaseModel):
+    service_id: str
+    plan_id: str = None
+    parameters: dict = None
+    previous_values: dict = None
+    context: dict = None
+
+    class Config:
+        extra = Extra.allow
+
+    # self.service_id = service_id
+    # self.plan_id = plan_id
+    # self.parameters = parameters
+    # self.previous_values = PreviousValues(**previous_values) if previous_values else None
+    # self.context = context
+    # # HTTP contextual data
+    # self.authorization_username = None  #: username of HTTP Basic Auth
+    # self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
 
 
-class UpdateServiceSpec:
-    def __init__(self,
-                 is_async: bool,
-                 operation: Optional[str] = None,
-                 dashboard_url: Optional[str] = None
-                 ):
-        self.is_async = is_async
-        self.operation = operation
-        self.dashboard_url = dashboard_url
+class UpdateServiceSpec(BaseModel):
+    is_async: bool
+    operation: Optional[str] = None
+    dashboard_url: Optional[str] = None
 
 
-class BindResource:
-    def __init__(self,
-                 app_guid: str = None,
-                 route: str = None,
-                 **kwargs
-                 ):
-        self.app_guid = app_guid
-        self.route = route
+class BindResource(BaseModel):
+    app_guid: str = None
+    route: str = None
+
+    class Config:
+        extra = Extra.allow
 
 
-class BindDetails:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str,
-                 app_guid: str = None,
-                 bind_resource: dict = None,
-                 parameters: dict = None,
-                 context: dict = None,
-                 **kwargs
-                 ):
-        self.app_guid = app_guid
-        self.plan_id = plan_id
-        self.service_id = service_id
-        self.parameters = parameters
-        self.bind_resource = BindResource(**bind_resource) if bind_resource else None
-        self.context = context
-        # HTTP contextual data
-        self.authorization_username = None  #: username of HTTP Basic Auth
-        self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
+class BindDetails(BaseModel):
+    service_id: str
+    plan_id: str
+    app_guid: str = None
+    bind_resource: dict = None
+    parameters: dict = None
+    context: dict = None
+
+    class Config:
+        extra = Extra.allow
+    # self.app_guid = app_guid
+    # self.plan_id = plan_id
+    # self.service_id = service_id
+    # self.parameters = parameters
+    # self.bind_resource = BindResource(**bind_resource) if bind_resource else None
+    # self.context = context
+    # # HTTP contextual data
+    # self.authorization_username = None  #: username of HTTP Basic Auth
+    # self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
 
 
-class SharedDevice:
-    def __init__(self,
-                 volume_id: str,
-                 mount_config: dict = None
-                 ):
-        self.volume_id = volume_id
-        self.mount_config = mount_config
+class SharedDevice(BaseModel):
+    volume_id: str
+    mount_config: dict = None
 
 
-class VolumeMount:
-    def __init__(self,
-                 driver: str,
-                 container_dir: str,
-                 mode: str,
-                 device_type: str,
-                 device: SharedDevice
-                 ):
-        self.driver = driver
-        self.container_dir = container_dir
-        self.mode = mode
-        self.device_type = device_type
-        self.device = device
+
+class VolumeMount(BaseModel):
+    driver: str
+    container_dir: str
+    mode: str
+    device_type: str
+    device: SharedDevice
 
 
 class BindState(Enum):
@@ -206,58 +167,39 @@ class BindState(Enum):
     IDENTICAL_ALREADY_EXISTS = "exists with identical config"
 
 
-class Binding:
-    def __init__(self,
-                 state=BindState.SUCCESSFUL_BOUND,
-                 credentials: dict = None,
-                 syslog_drain_url: str = None,
-                 route_service_url: str = None,
-                 volume_mounts: List[VolumeMount] = None,
-                 operation: Optional[str] = None
-                 ):
-        self.state = state
-        self.credentials = credentials
-        self.syslog_drain_url = syslog_drain_url
-        self.route_service_url = route_service_url
-        self.volume_mounts = volume_mounts
-        self.operation = operation
+class Binding(BaseModel):
+    state=BindState.SUCCESSFUL_BOUND
+    credentials: dict = None
+    syslog_drain_url: str = None
+    route_service_url: str = None
+    volume_mounts: List[VolumeMount] = None
+    operation: Optional[str] = None
 
 
-class GetBindingSpec:
-    def __init__(self,
-                 credentials: dict = None,
-                 syslog_drain_url: str = None,
-                 route_service_url: str = None,
-                 volume_mounts: List[VolumeMount] = None,
-                 parameters: Optional[dict] = None,
-                 **kwargs
-                 ):
-        self.credentials = credentials
-        self.syslog_drain_url = syslog_drain_url
-        self.route_service_url = route_service_url
-        self.volume_mounts = volume_mounts
-        self.parameters = parameters
+class GetBindingSpec(BaseModel):
+    credentials: dict = None
+    syslog_drain_url: str = None
+    route_service_url: str = None
+    volume_mounts: List[VolumeMount] = None
+    parameters: Optional[dict] = None
+
+    class Config:
+        extra = Extra.allow
 
 
-class UnbindDetails:
-    def __init__(self,
-                 service_id: str,
-                 plan_id: str
-                 ):
-        self.plan_id = plan_id
-        self.service_id = service_id
-        # HTTP contextual data
-        self.authorization_username = None  #: username of HTTP Basic Auth
-        self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
+class UnbindDetails(BaseModel):
+    service_id: str
+    plan_id: str
+
+    # # HTTP contextual data
+    # self.authorization_username = None  #: username of HTTP Basic Auth
+    # self.originating_identity = None  #: decoded X-Broker-Originating-Identity HTTP Header
 
 
-class UnbindSpec:
-    def __init__(self,
-                 is_async: bool,
-                 operation: str = None
-                 ):
-        self.is_async = is_async
-        self.operation = operation
+class UnbindSpec(BaseModel):
+    is_async: bool
+    operation: str = None
+
 
 
 class OperationState(Enum):
@@ -266,13 +208,10 @@ class OperationState(Enum):
     FAILED = "failed"
 
 
-class LastOperation:
-    def __init__(self,
-                 state: OperationState,
-                 description: str = None
-                 ):
-        self.state = state
-        self.description = description
+class LastOperation(BaseModel):
+    state: OperationState
+    description: str = None
+
 
 
 class Service(BaseModel):
@@ -291,6 +230,7 @@ class Service(BaseModel):
 
     class Config:
         extra = Extra.allow
+
 
 class ServiceBroker:
     """

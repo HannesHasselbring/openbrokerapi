@@ -9,12 +9,9 @@ class EmptyResponse:
     pass
 
 
-class ErrorResponse:
-    def __init__(self,
-                 error: str = None,
-                 description: str = None):
-        self.error = error
-        self.description = description
+class ErrorResponse(BaseModel):
+    error: Optional[str]
+    description: str
 
 
 class AsyncResponse:

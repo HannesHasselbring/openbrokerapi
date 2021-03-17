@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import List, Union
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 from starlette.routing import Router
 
 from openbrokerapi_v2.helper import ensure_list
@@ -10,7 +10,7 @@ from openbrokerapi_v2.response import (
     CatalogResponse)
 from openbrokerapi_v2.router import Router
 from openbrokerapi_v2.service_broker import (
-    ServiceBroker)
+    ServiceBroker, ProvisionDetails)
 
 
 @dataclass
@@ -47,6 +47,7 @@ def get_router(service_broker: ServiceBroker,
     """
     openbroker = APIRouter()
 
+
     # # Apply filters
     # logger.debug("Apply print_request filter for debugging")
     # openbroker.before_request(print_request)
@@ -76,10 +77,10 @@ def get_router(service_broker: ServiceBroker,
     #         return None
     #
     # # TODO how to do errorhandling
-    # @openbroker.errorhandler(Exception)
+    # @openbroker.exceotuin(Exception)
     # def error_handler(e):
     #     logger.exception(e)
-    #     return to_json_response(ErrorResponse(
+    #     return to_json_response(ç(
     #         description=constants.DEFAULT_EXCEPTION_ERROR_MESSAGE
     #     )), HTTPStatus.INTERNAL_SERVER_ERROR
     #
@@ -97,7 +98,9 @@ def get_router(service_broker: ServiceBroker,
     #         description=constants.DEFAULT_BAD_REQUEST_ERROR_MESSAGE
     #     )), HTTPStatus.BAD_REQUEST
 
-    @openbroker.get("/v2/catalog",response_model_exclude_none=True, response_model=CatalogResponse)
+    @openbroker.get("/v2/catalog",
+                    response_model_exclude_none=True,
+                    response_model=CatalogResponse)
     def catalog() -> CatalogResponse:
         """
         :return: Catalog of broker (List of services)
@@ -105,45 +108,49 @@ def get_router(service_broker: ServiceBroker,
         catalog = ensure_list(service_broker.catalog())
         return CatalogResponse(services=catalog)
 
-    # @openbroker.route("/v2/service_instances/<instance_id>", methods=['PUT'])
-    # @requires_application_json
-    # def provision(instance_id):
-    #     try:
-    #         accepts_incomplete = 'true' == request.args.get("accepts_incomplete", 'false')
-    #
-    #         provision_details = ProvisionDetails(**json.loads(request.data))
-    #         provision_details.originating_identity = request.originating_identity
-    #         provision_details.authorization_username = extract_authorization_username(request)
-    #
-    #         if not _check_plan_id(service_broker, provision_details.plan_id):
-    #             raise TypeError('plan_id not found in this service.')
-    #     except (TypeError, KeyError, JSONDecodeError) as e:
-    #         logger.exception(e)
-    #         return to_json_response(ErrorResponse(description=str(e))), HTTPStatus.BAD_REQUEST
-    #
-    #     try:
-    #         result = service_broker.provision(instance_id, provision_details, accepts_incomplete)
-    #     except errors.ErrInstanceAlreadyExists as e:
-    #         logger.exception(e)
-    #         return to_json_response(EmptyResponse()), HTTPStatus.CONFLICT
-    #     except errors.ErrInvalidParameters as e:
-    #         return to_json_response(ErrorResponse('InvalidParameters', str(e))), HTTPStatus.BAD_REQUEST
-    #     except errors.ErrAsyncRequired as e:
-    #         logger.exception(e)
-    #         return to_json_response(ErrorResponse(
-    #             error="AsyncRequired",
-    #             description="This service plan requires client support for asynchronous service operations."
-    #         )), HTTPStatus.UNPROCESSABLE_ENTITY
-    #
-    #     if result.state == ProvisionState.IS_ASYNC:
-    #         return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.ACCEPTED
-    #     elif result.state == ProvisionState.IDENTICAL_ALREADY_EXISTS:
-    #         return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.OK
-    #     elif result.state == ProvisionState.SUCCESSFUL_CREATED:
-    #         return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.CREATED
-    #     else:
-    #         raise errors.ServiceException('IllegalState, ProvisioningState unknown.')
-    #
+    @openbroker.put("/v2/service_instances/{instance_id}")
+    def provision(instance_id,
+                  provision_details: ProvisionDetails,
+                  accepts_incomplete: bool = False,
+                  x_broker_api_version: str = Header(None)):
+        logger.debug(f'X-Broker-Api-Version: {x_broker_api_version}')
+        # try:
+        #     accepts_incomplete = 'true' == request.args.get("accepts_incomplete", 'false')
+        #
+        #     provision_details = ProvisionDetails(**json.loads(request.data))
+        #     provision_details.originating_identity = request.originating_identity
+        #     provision_details.authorization_username = extract_authorization_username(request)
+        #
+        if not _check_plan_id(service_broker, provision_details.plan_id):
+            raise TypeError('plan_id not found in this service.')
+        # except (TypeError, KeyError, JSONDecodeError) as e:
+        #     logger.exception(e)
+        #     return to_json_response(ErrorResponse(description=str(e))), HTTPStatus.BAD_REQUEST
+        #
+        # try:
+        #     result = service_broker.provision(instance_id, provision_details, accepts_incomplete)
+        # except errors.ErrInstanceAlreadyExists as e:
+        #     logger.exception(e)
+        #     return to_json_response(EmptyResponse()), HTTPStatus.CONFLICT
+        # except errors.ErrInvalidParameters as e:
+        #     return to_json_response(ErrorResponse('InvalidParameters', str(e))), HTTPStatus.BAD_REQUEST
+        # except errors.ErrAsyncRequired as e:
+        #     logger.exception(e)
+        #     return to_json_response(ErrorResponse(
+        #         error="AsyncRequired",
+        #         description="This service plan requires client support for asynchronous service operations."
+        #     )), HTTPStatus.UNPROCESSABLE_ENTITY
+        #
+        # if result.state == ProvisionState.IS_ASYNC:
+        #     return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.ACCEPTED
+        # elif result.state == ProvisionState.IDENTICAL_ALREADY_EXISTS:
+        #     return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.OK
+        # elif result.state == ProvisionState.SUCCESSFUL_CREATED:
+        #     return to_json_response(ProvisioningResponse(result.dashboard_url, result.operation)), HTTPStatus.CREATED
+        # else:
+        #     raise errors.ServiceException('IllegalState, ProvisioningState unknown.')
+        return provision_details
+
     # @openbroker.route("/v2/service_instances/<instance_id>", methods=['PATCH'])
     # @requires_application_json
     # def update(instance_id):
@@ -356,7 +363,7 @@ def serve(service_broker: ServiceBroker,
           port=5000,
           debug=False):
     """
-    Starts flask with the given brokers.
+    Starts fastAPI with the given brokers.
     You can provide a list or just one ServiceBroker
 
     :param service_broker: ServicesBroker for services to provide
@@ -365,24 +372,15 @@ def serve(service_broker: ServiceBroker,
     :param port: Port
     :param debug: Enables debugging in flask app
     """
-
-    from flask import Flask
-    app = Flask(__name__)
+    from fastapi import FastAPI
+    app = FastAPI()
     app.debug = debug
 
-    blueprint = get_router(service_broker, credentials, logger)
+    router = get_router(service_broker, credentials, logger)
 
     logger.debug('Register openbrokerapi_v2 blueprint')
-    app.register_blueprint(blueprint)
+    app.include_router(router=router)
 
-    try:
-        from gevent.pywsgi import WSGIServer
-
-        logger.info('Start Gevent server on 0.0.0.0:%s' % port)
-        http_server = WSGIServer(('0.0.0.0', port), app)
-        http_server.serve_forever()
-    except ImportError:
-
-        logger.info('Start Flask on 0.0.0.0:%s' % port)
-        logger.warning('Use a server like gevent or gunicorn for production!')
-        app.run('0.0.0.0', port)
+    logger.info('Start Gevent server on 0.0.0.0:%s' % port)
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="debug", )

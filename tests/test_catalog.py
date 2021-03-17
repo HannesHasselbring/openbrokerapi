@@ -1,14 +1,9 @@
 import base64
 import http
-import logging
-from unittest.mock import Mock
 
-from fastapi import FastAPI
-from pytest import fixture
-from starlette.testclient import TestClient
 
 from openbrokerapi_v2 import constants
-from openbrokerapi_v2.api import get_router, BrokerCredentials
+
 from openbrokerapi_v2.catalog import (
     ServiceDashboardClient,
     ServiceMetadata,
@@ -18,38 +13,6 @@ from openbrokerapi_v2.catalog import (
 )
 from openbrokerapi_v2.log_util import configure
 from openbrokerapi_v2.service_broker import Service, ServiceBroker
-
-AUTH_HEADER = "Basic " + base64.b64encode(b":").decode("ascii")
-
-
-@fixture
-def demo_service() -> Service:
-    return Service(
-        id="s1",
-        name="service_name",
-        description="service_description",
-        bindable=True,
-        plans=[ServicePlan(id="p1", name="default", description="plan_description")],
-    )
-
-
-@fixture
-def mock_broker() -> ServiceBroker:
-    return Mock()
-
-
-@fixture
-def client(mock_broker) -> TestClient:
-    app = FastAPI()
-
-    app.include_router(
-        get_router(
-            mock_broker, BrokerCredentials("", ""), configure(level=logging.WARN)
-        )
-    )
-
-    return TestClient(app)
-
 
 def test_catalog_called_with_the_right_values(client, demo_service, mock_broker):
     mock_broker.catalog.return_value = demo_service
@@ -213,6 +176,7 @@ def test_catalog_returns_200_with_minimal_service_information(
 def test_catalog_returns_500_if_error_raised(client, demo_service, mock_broker):
     # TODO is this a problem only in this test?
     mock_broker.catalog.side_effect = Exception("ERROR")
+    mock_broker.catalog.return_value = demo_service
 
     response = client.get(
         "/v2/catalog",
