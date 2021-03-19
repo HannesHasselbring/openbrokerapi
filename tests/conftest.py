@@ -36,6 +36,7 @@ def mock_broker() -> ServiceBroker:
 
 @fixture
 def client(mock_broker) -> TestClient:
+    # TODO: init app properly, don't bypass/reimplement business logic for exception handling
     from openbrokerapi_v2.response import ErrorResponse
     app = FastAPI()
 

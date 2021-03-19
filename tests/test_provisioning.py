@@ -22,14 +22,15 @@ from openbrokerapi_v2.service_broker import ProvisionedServiceSpec, ProvisionDet
 from tests import AUTH_HEADER
 
 
-def test_provisioning_called_with_the_right_values(mock_broker, client):
+def test_provisioning_called_with_the_right_values(mock_broker, client, demo_service):
+    mock_broker.catalog.return_value = demo_service
     mock_broker.provision.return_value = ProvisionedServiceSpec(dashboard_url="dash_url", operation="operation_str")
 
-    client.put(
+    response = client.put(
         "/v2/service_instances/here-instance-id?accepts_incomplete=true",
         data=json.dumps({
-            "service_id": "service-guid-here",
-            "plan_id": "plan-guid-here",
+            "service_id": "s1",
+            "plan_id": "p1",
             "organization_guid": "org-guid-here",
             "space_guid": "space-guid-here",
             "parameters": {
@@ -51,23 +52,25 @@ def test_provisioning_called_with_the_right_values(mock_broker, client):
     assert actual_async_allowed
 
 
-    assert actual_details.isInstance(ProvisionDetails)
-    assert actual_details.service_id == "service-guid-here"
-    assert actual_details.plan_id == "plan-guid-here"
+    assert type(actual_details) is ProvisionDetails
+    assert actual_details.service_id == "s1"
+    assert actual_details.plan_id == "p1"
     assert actual_details.parameters == dict(parameter1=1)
     assert actual_details.organization_guid == "org-guid-here"
     assert actual_details.space_guid == "space-guid-here"
     assert actual_details.context["organization_guid"] == "org-guid-here"
     assert actual_details.context["space_guid"] == "space-guid-here"
+    assert response.json() is not None
 
-def test_provisining_called_just_with_required_fields(self):
-    self.broker.provision.return_value = ProvisionedServiceSpec(dashboard_url="dash_url", operation="operation_str")
+def test_provisining_called_just_with_required_fields(mock_broker, client, demo_service):
+    mock_broker.catalog.return_value = demo_service
+    mock_broker.provision.return_value = ProvisionedServiceSpec(dashboard_url="dash_url", operation="operation_str")
 
-    self.client.put(
+    response = client.put(
         "/v2/service_instances/here-instance-id",
         data=json.dumps({
-            "service_id": "service-guid-here",
-            "plan_id": "plan-guid-here",
+            "service_id": "s1",
+            "plan_id": "p1",
             "context": {
                 "organization_guid": "org-guid-here",
                 "space_guid": "space-guid-here",
@@ -76,20 +79,20 @@ def test_provisining_called_just_with_required_fields(self):
         headers={
             'X-Broker-Api-Version': '2.13',
             'Content-Type': 'application/json',
-            'Authorization': self.auth_header
+            'Authorization': AUTH_HEADER
         })
 
-    actual_instance_id, actual_details, actual_async_allowed = self.broker.provision.call_args[0]
-    self.assertEqual(actual_instance_id, "here-instance-id")
-    self.assertEqual(actual_async_allowed, False)
+    actual_instance_id, actual_details, actual_async_allowed = mock_broker.provision.call_args[0]
+    assert actual_instance_id == "here-instance-id"
+    assert not actual_async_allowed
+    assert type(actual_details) is ProvisionDetails
+    assert actual_details.service_id == 's1'
+    assert actual_details.plan_id == 'p1'
+    assert actual_details.context['organization_guid'] == "org-guid-here"
+    assert actual_details.context["space_guid"] == "space-guid-here"
 
-    self.assertIsInstance(actual_details, ProvisionDetails)
-    self.assertEqual(actual_details.service_id, "service-guid-here")
-    self.assertEqual(actual_details.plan_id, "plan-guid-here")
-    self.assertEqual(actual_details.organization_guid, "org-guid-here")
-    self.assertEqual(actual_details.space_guid, "space-guid-here")
-
-    self.assertIsNone(actual_details.parameters)
+    assert actual_details.parameters is None
+    assert response.json() is not None
 
 def test_provisining_optional_org_and_space_if_available_in_context(self):
     self.broker.provision.return_value = ProvisionedServiceSpec(dashboard_url="dash_url", operation="operation_str")
@@ -342,8 +345,8 @@ def test_returns_200_if_identical_service_exists(self):
     self.assertEqual(response.status_code, http.HTTPStatus.OK)
     self.assertEqual(response.json, dict())
 
-def test_returns_400_if_request_does_not_contain_content_type_header(self):
-    response = self.client.put(
+def test_returns_400_if_request_does_not_contain_content_type_header(client):
+    response = client.put(
         "/v2/service_instances/abc",
         data=json.dumps({
             "service_id": "service-guid-here",
@@ -353,12 +356,11 @@ def test_returns_400_if_request_does_not_contain_content_type_header(self):
         }),
         headers={
             'X-Broker-Api-Version': '2.13',
-            'Authorization': self.auth_header
+            'Authorization': AUTH_HEADER
         })
 
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
-    self.assertEqual(response.json,
-                     dict(description='Improper Content-Type header. Expecting "application/json"'))
+    assert response.status_code == http.HTTPStatus.BAD_REQUEST
+    assert response.json == dict(description='Improper Content-Type header. Expecting "application/json"')
 
 def test_returns_400_if_request_does_not_contain_valid_json_body(self):
     response = self.client.put(

@@ -11,8 +11,9 @@ from openbrokerapi_v2.catalog import (
     ServicePlanCost,
     ServicePlanMetadata,
 )
-from openbrokerapi_v2.log_util import configure
 from openbrokerapi_v2.service_broker import Service, ServiceBroker
+from tests import AUTH_HEADER
+
 
 def test_catalog_called_with_the_right_values(client, demo_service, mock_broker):
     mock_broker.catalog.return_value = demo_service
@@ -41,7 +42,7 @@ def test_catalog_ignores_request_headers(client, demo_service, mock_broker):
 
 
 def test_catalog_returns_200_with_service_information(
-        client, demo_service, mock_broker
+    client, demo_service, mock_broker
 ):
     """
     This tests all the possible information a catalog could have. Including custom Service-/ServicePlanMetadata
@@ -140,7 +141,7 @@ def test_catalog_returns_200_with_service_information(
 
 
 def test_catalog_returns_200_with_minimal_service_information(
-        client, demo_service, mock_broker
+    client, demo_service, mock_broker
 ):
     mock_broker.catalog.return_value = demo_service
 
@@ -149,7 +150,7 @@ def test_catalog_returns_200_with_minimal_service_information(
         headers={
             "X-Broker-Api-Version": "2.13",
             "X-Broker-Api-Originating-Identity": "test "
-                                                 + base64.standard_b64encode(b'{"user_id":123}').decode("ascii"),
+            + base64.standard_b64encode(b'{"user_id":123}').decode("ascii"),
             "Authorization": AUTH_HEADER,
             "unknown": "unknown",
         },
@@ -166,11 +167,10 @@ def test_catalog_returns_200_with_minimal_service_information(
                 bindings_retrievable=False,
                 bindable=True,
                 plan_updateable=False,
-                plans=[
-                    dict(id="p1", name="default", description="plan_description")
-                ],
+                plans=[dict(id="p1", name="default", description="plan_description")],
             )
-        ])
+        ]
+    )
 
 
 def test_catalog_returns_500_if_error_raised(client, demo_service, mock_broker):
@@ -188,7 +188,9 @@ def test_catalog_returns_500_if_error_raised(client, demo_service, mock_broker):
     )
 
     assert response.status_code == http.HTTPStatus.INTERNAL_SERVER_ERROR
-    assert response.json() == dict(description=constants.DEFAULT_EXCEPTION_ERROR_MESSAGE)
+    assert response.json() == dict(
+        description=constants.DEFAULT_EXCEPTION_ERROR_MESSAGE
+    )
 
 
 def test_catalog_can_return_multiple_services(client, demo_service, mock_broker):
@@ -233,9 +235,7 @@ def test_catalog_can_return_multiple_services(client, demo_service, mock_broker)
                 instances_retrievable=False,
                 bindings_retrievable=False,
                 plan_updateable=False,
-                plans=[
-                    dict(id="p1", name="default1", description="plan_description1")
-                ],
+                plans=[dict(id="p1", name="default1", description="plan_description1")],
             ),
             dict(
                 id="s2",
@@ -245,9 +245,7 @@ def test_catalog_can_return_multiple_services(client, demo_service, mock_broker)
                 instances_retrievable=False,
                 bindings_retrievable=False,
                 plan_updateable=False,
-                plans=[
-                    dict(id="p2", name="default2", description="plan_description2")
-                ],
+                plans=[dict(id="p2", name="default2", description="plan_description2")],
             ),
         ]
     )
