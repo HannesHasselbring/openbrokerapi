@@ -2,7 +2,8 @@ import base64
 import logging
 from unittest.mock import Mock
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.exceptions import RequestValidationError
 from pytest import fixture
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -13,9 +14,6 @@ from openbrokerapi_v2.api import get_router, BrokerCredentials
 from openbrokerapi_v2.catalog import ServicePlan
 from openbrokerapi_v2.log_util import configure
 from openbrokerapi_v2.service_broker import Service, ServiceBroker
-
-
-
 
 
 @fixture
@@ -38,6 +36,7 @@ def mock_broker() -> ServiceBroker:
 def client(mock_broker) -> TestClient:
     # TODO: init app properly, don't bypass/reimplement business logic for exception handling
     from openbrokerapi_v2.response import ErrorResponse
+
     app = FastAPI()
 
     @app.exception_handler(Exception)
@@ -46,7 +45,18 @@ def client(mock_broker) -> TestClient:
         return JSONResponse(
             content=ErrorResponse(
                 description=constants.DEFAULT_EXCEPTION_ERROR_MESSAGE,
-            ).dict(), status_code=500
+            ).dict(),
+            status_code=500,
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            content=ErrorResponse(
+                description=f"Required parameters not provided. detail: {str(exc)}",
+                error="InvalidParameters",
+            ).dict(),
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     app.include_router(

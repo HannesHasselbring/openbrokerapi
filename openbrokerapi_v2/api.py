@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List, Union
 
 from fastapi import APIRouter, Header, status
+from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Router
 
@@ -125,11 +126,13 @@ def get_router(
             status.HTTP_200_OK: {"model": ProvisioningResponse},
             status.HTTP_201_CREATED: {"model": ProvisioningResponse},
             status.HTTP_202_ACCEPTED: {"model": ProvisioningResponse},
+            status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
             status.HTTP_409_CONFLICT: {"model": {}},
             status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponse},
-        }
+        },
     )
     def provision(
+        request: Request,
         instance_id,
         provision_details: ProvisionDetails,
         accepts_incomplete: bool = False,
@@ -140,6 +143,15 @@ def get_router(
         """
         # TODO: Authorization
         logger.debug(f"X-Broker-Api-Version: {x_broker_api_version}")
+        if request.headers.get("content-type") != "application/json":
+            return JSONResponse(
+                content=ErrorResponse(
+                    error="ContentTypeError",
+                    description='Improper Content-Type header. Expecting "application/json"',
+                ).json(),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not _check_plan_id(service_broker, provision_details.plan_id):
             raise TypeError("plan_id not found in this service.")
         try:
@@ -148,7 +160,7 @@ def get_router(
             )
         except errors.ErrInstanceAlreadyExists as e:
             logger.exception(e)
-            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=[])
+            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={})
         except errors.ErrAsyncRequired as e:
             logger.exception(e)
             return JSONResponse(
