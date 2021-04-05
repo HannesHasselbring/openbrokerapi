@@ -10,19 +10,6 @@ from openbrokerapi_v2.service_broker import (
     ProvisionState,
 )
 
-
-# class ProvisioningTest(BrokerTestCase):
-#     def setUp(self):
-#         self.broker.catalog.return_value = [
-#             Service(
-#                 id='service-guid-here',
-#                 name='',
-#                 description='',
-#                 bindable=True,
-#                 plans=[
-#                     ServicePlan('plan-guid-here', name='', description='')
-#                 ])
-#         ]
 from tests import AUTH_HEADER
 
 

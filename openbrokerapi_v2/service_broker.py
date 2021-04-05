@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, AnyHttpUrl
 
 from openbrokerapi_v2.catalog import (
     ServiceDashboardClient,
@@ -113,9 +113,11 @@ class UpdateDetails(BaseModel):
 
 
 class UpdateServiceSpec(BaseModel):
-    is_async: bool
+    is_async: bool = False
     operation: Optional[str] = None
-    dashboard_url: Optional[str] = None
+    dashboard_url: Optional[AnyHttpUrl] = None
+
+
 
 
 class BindResource(BaseModel):

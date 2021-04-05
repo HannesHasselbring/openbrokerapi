@@ -13,12 +13,14 @@ from openbrokerapi_v2.response import (
     CatalogResponse,
     ProvisioningResponse,
     ErrorResponse,
+    UpdateResponse,
 )
 from openbrokerapi_v2.router import Router
 from openbrokerapi_v2.service_broker import (
     ServiceBroker,
     ProvisionDetails,
     ProvisionState,
+    UpdateDetails,
 )
 
 
@@ -137,7 +139,7 @@ def get_router(
         provision_details: ProvisionDetails,
         accepts_incomplete: bool = False,
         x_broker_api_version: str = Header(None),
-    ):
+    ) -> JSONResponse:
         """
         Provision....
         """
@@ -156,7 +158,7 @@ def get_router(
             raise TypeError("plan_id not found in this service.")
         try:
             result = service_broker.provision(
-                instance_id, provision_details, accepts_incomplete
+                instance_id=instance_id, details=provision_details, async_allowed=accepts_incomplete
             )
         except errors.ErrInstanceAlreadyExists as e:
             logger.exception(e)
@@ -194,37 +196,50 @@ def get_router(
         else:
             raise errors.ServiceException("IllegalState, ProvisioningState unknown.")
 
-    # @openbroker.route("/v2/service_instances/<instance_id>", methods=['PATCH'])
-    # @requires_application_json
-    # def update(instance_id):
-    #     try:
-    #         accepts_incomplete = 'true' == request.args.get("accepts_incomplete", 'false')
-    #
-    #         update_details = UpdateDetails(**json.loads(request.data))
-    #         update_details.originating_identity = request.originating_identity
-    #         update_details.authorization_username = extract_authorization_username(request)
-    #         plan_id = update_details.plan_id
-    #         if plan_id and not _check_plan_id(service_broker, plan_id):
-    #             raise TypeError('plan_id not found in this service.')
-    #     except (TypeError, KeyError, JSONDecodeError) as e:
-    #         logger.exception(e)
-    #         return to_json_response(ErrorResponse(description=str(e))), HTTPStatus.BAD_REQUEST
-    #
-    #     try:
-    #         result = service_broker.update(instance_id, update_details, accepts_incomplete)
-    #     except errors.ErrInvalidParameters as e:
-    #         return to_json_response(ErrorResponse('InvalidParameters', str(e))), HTTPStatus.BAD_REQUEST
-    #     except errors.ErrAsyncRequired as e:
-    #         logger.exception(e)
-    #         return to_json_response(ErrorResponse(
-    #             error="AsyncRequired",
-    #             description="This service plan requires client support for asynchronous service operations."
-    #         )), HTTPStatus.UNPROCESSABLE_ENTITY
-    #
-    #     if result.is_async:
-    #         return to_json_response(UpdateResponse(result.operation, result.dashboard_url)), HTTPStatus.ACCEPTED
-    #     else:
-    #         return to_json_response(UpdateResponse(None, result.dashboard_url)), HTTPStatus.OK
+    @openbroker.patch(
+        "/v2/service_instances/{instance_id}",
+        response_model=UpdateResponse,
+        responses={
+            status.HTTP_200_OK: {"model": ProvisioningResponse},
+            status.HTTP_202_ACCEPTED: {"model": ProvisioningResponse},
+            status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+            status.HTTP_409_CONFLICT: {"model": {}},
+            status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponse},
+        },
+    )
+    def update(
+        instance_id,
+        update_details: UpdateDetails,
+        accepts_incomplete: bool = False,
+        x_broker_api_version: str = Header(None),
+    ):
+        try:
+            # TODO: Authentication, originating_identity
+            plan_id = update_details.plan_id
+            if plan_id and not _check_plan_id(service_broker, plan_id):
+                raise TypeError("plan_id not found in this service.")
+
+            result = service_broker.update(
+                instance_id=instance_id, details=update_details, async_allowed=accepts_incomplete
+            )
+        except errors.ErrInstanceAlreadyExists as e:
+            logger.exception(e)
+            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={})
+
+        except errors.ErrAsyncRequired as e:
+            logger.exception(e)
+            return JSONResponse(
+                ErrorResponse(
+                    error="AsyncRequired",
+                    description="This service plan requires client support for asynchronous service operations.",
+                ).json(),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        return JSONResponse(
+            UpdateResponse(operation=result.operation, dashboard_url=result.dashboard_url).json(), status_code=status.HTTP_200_OK
+        )
+
     #
     # @openbroker.route("/v2/service_instances/<instance_id>/service_bindings/<binding_id>", methods=['PUT'])
     # @requires_application_json

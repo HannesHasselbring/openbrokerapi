@@ -29,7 +29,7 @@ def demo_service() -> Service:
 
 @fixture
 def mock_broker() -> ServiceBroker:
-    return Mock()
+    return Mock(spec=ServiceBroker)
 
 
 @fixture

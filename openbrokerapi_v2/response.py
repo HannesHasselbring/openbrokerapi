@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, AnyHttpUrl
 
 from openbrokerapi_v2.service_broker import OperationState, VolumeMount, Service
 
@@ -18,7 +18,12 @@ class CatalogResponse(BaseModel):
 
 
 class ProvisioningResponse(BaseModel):
-    dashboard_url: str
+    dashboard_url: Optional[AnyHttpUrl]
+    operation: str
+
+
+class UpdateResponse(BaseModel):
+    dashboard_url: Optional[AnyHttpUrl]
     operation: str
 
 
@@ -77,10 +82,7 @@ class UnbindResponse(AsyncResponse):
         self.operation = operation
 
 
-class UpdateResponse(AsyncResponse):
-    def __init__(self, operation: Optional[str], dashboard_url: Optional[str]):
-        self.operation = operation
-        self.dashboard_url = dashboard_url
+
 
 
 class DeprovisionResponse(AsyncResponse):
